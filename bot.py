@@ -1,43 +1,69 @@
 import os
 import re
-from sympy import symbols, Eq, solve, sympify
-from aiogram import Bot, Dispatcher, types
-from aiogram.utils import executor
+from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt
+from sympy.parsing.sympy_parser import transformations, standard_transformations
+from aiogram import Bot, Dispatcher
+from aiogram.types import Message
+from aiogram.filters import Command
+import asyncio
 
 # 🔹 Отримуємо токен з Environment Variables
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 bot = Bot(token=TOKEN)
-dp = Dispatcher(bot)
+dp = Dispatcher()
 
-# 🔹 Оголошуємо змінну x
+# 🔹 Оголошуємо змінну x (основну змінну для рівнянь)
 x = symbols('x')
 
 def fix_equation(equation_str):
     """Автоматично виправляє введення користувача"""
-    equation_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', equation_str)  # 5x → 5*x
-    equation_str = equation_str.replace("^", "**")  # x^2 → x**2
+    equation_str = equation_str.replace("^", "**")  # 2^x → 2**x
+    equation_str = equation_str.replace("√(", "sqrt(")  # √(x) → sqrt(x)
+    equation_str = re.sub(r'log_(\d+)\((.*?)\)', r'log(\2, \1)', equation_str)  # log_2(8) → log(8,2)
     return equation_str
 
-def solve_equation(equation_str):
-    """Розв’язує рівняння безпечно"""
+def solve_math_expression(expression_str):
+    """Розпізнає і розв’язує рівняння, нерівності або вирази"""
     try:
-        equation_str = fix_equation(equation_str)
-        left, right = equation_str.split("=")
-        equation = Eq(sympify(left.strip()), sympify(right.strip()))  # Без eval()
-        solution = solve(equation, x)
-        return solution
+        expression_str = fix_equation(expression_str)
+        
+        # Перевіряємо, чи це рівняння (містить "=")
+        if "=" in expression_str:
+            left, right = expression_str.split("=")
+            equation = Eq(eval(left.strip(), {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt}),
+                          eval(right.strip(), {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt}))
+            solution = solve(equation, x)
+            return f"✏️ **Розв’язок рівняння:** x = {solution}"
+        
+        # Перевіряємо, чи це нерівність
+        elif ">" in expression_str or "<" in expression_str or ">=" in expression_str or "<=" in expression_str:
+            return "🔹 **Розв’язок нерівностей в розробці!**"
+
+        # Якщо це просто вираз (наприклад, `sin(30) + cos(60)`)
+        else:
+            result = eval(expression_str, {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt})
+            return f"🔢 **Відповідь:** {result}"
+
     except Exception as e:
-        return f"Помилка: {e}"
+        return f"❌ **Помилка:** {e}"
 
-@dp.message_handler(commands=['start', 'help'])
-async def send_welcome(message: types.Message):
-    await message.answer("👋 Вітаю! Надішли мені рівняння, і я його розв’яжу! (Наприклад: `2x + 3 = 7`)")
+@dp.message(Command("start"))
+async def send_welcome(message: Message):
+    await message.answer("👋 **Вітаю!** Надішли мені рівняння чи вираз, і я його розв’яжу! \n\n"
+                         "📌 **Як вводити:**\n"
+                         "- `2^x = 8` (степінь)\n"
+                         "- `sqrt(x) = 4` (корінь)\n"
+                         "- `log_2(8) = x` (логарифм)\n"
+                         "- `sin(x) + cos(x) = 1` (тригонометрія)")
 
-@dp.message_handler()
-async def solve_math(message: types.Message):
-    result = solve_equation(message.text)
-    await message.answer(f"✏️ Розв’язок: {result}")
+@dp.message()
+async def solve_math(message: Message):
+    result = solve_math_expression(message.text)
+    await message.answer(result)
 
-if __name__ == '__main__':
-    executor.start_polling(dp, skip_updates=True)
+async def main():
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
