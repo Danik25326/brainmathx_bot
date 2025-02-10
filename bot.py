@@ -1,41 +1,41 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
-import sympy
+pip install aiogram sympy
 
+import re
+import os
+from sympy import symbols, Eq, solve
+from aiogram import Bot, Dispatcher, types
+from aiogram.utils import executor
+
+# 🔹 Введи токен твого Telegram-бота
 TOKEN = "7543249963:AAGsajvraydao-8U9LzW1297tdMuVV9VptI"
 
-def solve_equation(expression):
-    x = sympy.Symbol('x')
+bot = Bot(token=TOKEN)
+dp = Dispatcher(bot)
+
+# 🔹 Оголошуємо змінну x
+x = symbols('x')
+
+def fix_equation(equation_str):
+    """Автоматично виправляє введення користувача"""
+    equation_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', equation_str)  # 5x → 5*x
+    equation_str = equation_str.replace("^", "**")  # x^2 → x**2
+    return equation_str
+
+def solve_equation(equation_str):
+    """Розв’язує рівняння"""
     try:
-        solution = sympy.solve(sympy.sympify(expression), x)
+        equation_str = fix_equation(equation_str)  # Форматуємо рівняння
+        left, right = equation_str.split("=")  # Розбиваємо рівняння на частини
+        equation = Eq(eval(left.strip()), eval(right.strip()))  # Створюємо рівняння
+        solution = solve(equation, x)  # Розв’язуємо
         return solution
     except Exception as e:
         return f"Помилка: {e}"
 
-async def start(update: Update, context: CallbackContext):
-    await update.message.reply_text("Привіт! Введи рівняння або нерівність (наприклад, x**2 - 4 = 0), а я її розв’яжу!")
+@dp.message_handler()
+async def solve_math(message: types.Message):
+    result = solve_equation(message.text)
+    await message.answer(f"✏️ Розв’язок: {result}")
 
-async def handle_message(update: Update, context: CallbackContext):
-    user_input = update.message.text
-    try:
-        if "a" in user_input:
-            result = solve_equation(user_input)
-        elif ">" in user_input or "<" in user_input:
-            result = solve_equation(user_input)
-        else:
-            result = solve_equation(user_input)
-        
-        await update.message.reply_text(f"Розв’язок: {result}")
-    except Exception as e:
-        await update.message.reply_text("Щось пішло не так 😕 Перевір правильність рівняння.")
-
-def main():
-    app = ApplicationBuilder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-    print("Бот запущено!")  
-    app.run_polling()
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
