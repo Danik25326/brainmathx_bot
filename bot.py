@@ -1,6 +1,6 @@
 import os
 import re
-from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt
+from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi
 from sympy.parsing.sympy_parser import transformations, standard_transformations
 from aiogram import Bot, Dispatcher
 from aiogram.types import Message
@@ -23,29 +23,32 @@ def fix_equation(equation_str):
     equation_str = re.sub(r'log_(\d+)\((.*?)\)', r'log(\2, \1)', equation_str)  # log_2(8) → log(8,2)
     return equation_str
 
+from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi
+
+x = symbols('x')
+
 def solve_math_expression(expression_str):
     """Розпізнає і розв’язує рівняння, нерівності або вирази"""
     try:
-        expression_str = fix_equation(expression_str)
-        
         # Перевіряємо, чи це рівняння (містить "=")
         if "=" in expression_str:
             left, right = expression_str.split("=")
             equation = Eq(eval(left.strip(), {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi}),
                           eval(right.strip(), {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi}))
             solution = solve(equation, x)
-            return f"✏️ **Розв’язок рівняння:** x = {solution}"
+            return f"✏️ **Розв’язок рівняння:**\n\n*x* = `{solution}` ✅"
         
-        # Якщо це просто вираз (наприклад, sin(30) + cos(60))
+        # Просто вираз (наприклад, sin(30) + cos(60))
         else:
             result = eval(expression_str, {"x": x, "sin": lambda a: sin(a * pi / 180).evalf(),
                                            "cos": lambda a: cos(a * pi / 180).evalf(),
                                            "tan": lambda a: tan(a * pi / 180).evalf(),
                                            "log": log, "sqrt": sqrt, "pi": pi})
-            return f"🔢 **Відповідь:** {result}"
+            return f"🔢 **Відповідь:** `{result}` ✅"
 
     except Exception as e:
-        return f"❌ **Помилка:** {e}"
+        return f"❌ **Помилка:** `{e}`"
+
         
 @dp.message(Command("start"))
 async def send_welcome(message: Message):
