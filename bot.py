@@ -62,7 +62,8 @@ async def solve_math(message: Message):
     await message.answer(result)
 
 async def main():
-    await dp.start_polling(bot)
+    await dp.start_polling(bot, skip_updates=True)  # ✅ Додаємо skip_updates=True
 
 if __name__ == "__main__":
     asyncio.run(main())
+
