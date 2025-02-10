@@ -4,6 +4,7 @@ import re
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import MenuButtonCommands
 from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")  # Отримуємо токен
@@ -85,9 +86,22 @@ async def solve_math(message: types.Message):
     result = solve_math_expression(message.text)
     await message.answer(result)
 
-# 📌 Запуск бота
+async def set_menu():
+    await bot.set_my_commands([
+        types.BotCommand("start", "Запустити бота"),
+        types.BotCommand("help", "Як користуватися ботом?"),
+        types.BotCommand("equation", "Розв’язати рівняння"),
+        types.BotCommand("inequality", "Розв’язати нерівність"),
+        types.BotCommand("trigonometry", "Обчислити тригонометрію"),
+        types.BotCommand("logarithm", "Обчислити логарифм"),
+        types.BotCommand("donate", "Підтримати розробника 💰")
+    ])
+    await bot.set_chat_menu_button(menu_button=MenuButtonCommands())  # Встановлюємо меню кнопок
+
+# 📌 Додаємо виклик функції при запуску бота
 async def main():
-    await dp.start_polling(bot, skip_updates=True)  # ✅ Додаємо skip_updates=True
+    await set_menu()  # Встановлюємо меню під час запуску
+    await dp.start_polling(bot, skip_updates=True)
 
 if __name__ == "__main__":
     asyncio.run(main())
