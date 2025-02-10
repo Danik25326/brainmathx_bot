@@ -1,13 +1,11 @@
-pip install aiogram sympy
-
-import re
 import os
-from sympy import symbols, Eq, solve
+import re
+from sympy import symbols, Eq, solve, sympify
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
 
-# 🔹 Введи токен твого Telegram-бота
-TOKEN = "7543249963:AAFA34wKoAbPBLnYhCYLIPEiA1qy-6tGpFk"
+# 🔹 Отримуємо токен з Environment Variables
+TOKEN = os.getenv("7543249963:AAFll5BEZWRbSv0xDUyhqM0X4GKuIFVJ_K4")
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
@@ -22,15 +20,19 @@ def fix_equation(equation_str):
     return equation_str
 
 def solve_equation(equation_str):
-    """Розв’язує рівняння"""
+    """Розв’язує рівняння безпечно"""
     try:
-        equation_str = fix_equation(equation_str)  # Форматуємо рівняння
-        left, right = equation_str.split("=")  # Розбиваємо рівняння на частини
-        equation = Eq(eval(left.strip()), eval(right.strip()))  # Створюємо рівняння
-        solution = solve(equation, x)  # Розв’язуємо
+        equation_str = fix_equation(equation_str)
+        left, right = equation_str.split("=")
+        equation = Eq(sympify(left.strip()), sympify(right.strip()))  # Без eval()
+        solution = solve(equation, x)
         return solution
     except Exception as e:
         return f"Помилка: {e}"
+
+@dp.message_handler(commands=['start', 'help'])
+async def send_welcome(message: types.Message):
+    await message.answer("👋 Вітаю! Надішли мені рівняння, і я його розв’яжу! (Наприклад: `2x + 3 = 7`)")
 
 @dp.message_handler()
 async def solve_math(message: types.Message):
