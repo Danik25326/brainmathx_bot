@@ -7,7 +7,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
 
 # 🔹 Введи токен твого Telegram-бота
-TOKEN = "7543249963:AAGsajvraydao-8U9LzW1297tdMuVV9VptI"
+TOKEN = "7543249963:AAFA34wKoAbPBLnYhCYLIPEiA1qy-6tGpFk"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
