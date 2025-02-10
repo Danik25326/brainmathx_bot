@@ -41,11 +41,15 @@ def fix_equation(equation_str):
 
 # 📌 Функція для розрахунків
 @dp.message()
-async def solve_math(message: types.Message):
+async def handle_messages(message: types.Message):
+    """Перевіряємо, чи це команда чи математичний вираз"""
+    if message.text.startswith("/"):
+        return  # ✅ Ігноруємо всі команди, щоб бот їх не рахував
+    
     try:
         expression = fix_equation(message.text)
 
-        # ✅ Перевіряємо, чи це рівняння (містить "=")
+        # ✅ Якщо це рівняння (містить "=")
         if "=" in expression:
             left, right = expression.split("=")
             equation = Eq(eval(left.strip(), {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi}),
