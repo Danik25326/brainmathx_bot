@@ -41,11 +41,10 @@ def solve_math_expression(expression_str):
         # Просто вираз (наприклад, sin(30) + cos(60))
         else:
             result = eval(expression_str, {"x": x, "sin": lambda a: sin(a * pi / 180).evalf(),
-                                           "cos": lambda a: cos(a * pi / 180).evalf(),
-                                           "tan": lambda a: tan(a * pi / 180).evalf(),
-                                           "log": log, "sqrt": sqrt, "pi": pi})
+                               "cos": lambda a: cos(a * pi / 180).evalf(),
+                               "tan": lambda a: tan(a * pi / 180).evalf(),
+                               "log": log, "sqrt": sqrt, "pi": pi})
             return f"🔢 **Відповідь:** `{result}` ✅"
-
     except Exception as e:
         return f"❌ **Помилка:** `{e}`"
 
