@@ -4,7 +4,7 @@ import re
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.types import MenuButtonCommands
+from aiogram.types import BotCommand, MenuButtonCommands
 from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")  # Отримуємо токен
@@ -88,20 +88,19 @@ async def solve_math(message: types.Message):
 
 async def set_menu():
     await bot.set_my_commands([
-        types.BotCommand("start", "Запустити бота"),
-        types.BotCommand("help", "Як користуватися ботом?"),
-        types.BotCommand("equation", "Розв’язати рівняння"),
-        types.BotCommand("inequality", "Розв’язати нерівність"),
-        types.BotCommand("trigonometry", "Обчислити тригонометрію"),
-        types.BotCommand("logarithm", "Обчислити логарифм"),
-        types.BotCommand("donate", "Підтримати розробника 💰")
+        BotCommand(command="start", description="Запустити бота"),
+        BotCommand(command="help", description="Як користуватися ботом?"),
+        BotCommand(command="equation", description="Розв’язати рівняння"),
+        BotCommand(command="inequality", description="Розв’язати нерівність"),
+        BotCommand(command="trigonometry", description="Обчислити тригонометрію"),
+        BotCommand(command="logarithm", description="Обчислити логарифм"),
+        BotCommand(command="donate", description="Підтримати розробника 💰")
     ])
     await bot.set_chat_menu_button(menu_button=MenuButtonCommands())  # Встановлюємо меню кнопок
 
-# 📌 Додаємо виклик функції при запуску бота
+# 📌 Викликаємо функцію при запуску
 async def main():
-    await set_menu()  # Встановлюємо меню під час запуску
+    await set_menu()
     await dp.start_polling(bot, skip_updates=True)
-
 if __name__ == "__main__":
     asyncio.run(main())
