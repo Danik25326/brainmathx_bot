@@ -1,36 +1,42 @@
 import os
-import re
-from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi
-from sympy.parsing.sympy_parser import transformations, standard_transformations
-from aiogram import Bot, Dispatcher
-from aiogram.types import Message
-from aiogram.filters.command import Command
 import asyncio
+import re
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi
 
-# 🔹 Отримуємо токен з Environment Variables
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")  # Отримуємо токен
 
-bot = Bot(token=TOKEN)
+bot = Bot(token=TOKEN, parse_mode="Markdown")  # Markdown для красивого оформлення
 dp = Dispatcher()
 
-# 🔹 Оголошуємо змінну x (основну змінну для рівнянь)
-x = symbols('x')
+x = symbols('x')  # Основна змінна
 
+# 📌 Функція для кнопок
+def main_keyboard():
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📏 Рівняння", callback_data="equation"),
+         InlineKeyboardButton(text="📊 Нерівності", callback_data="inequality")],
+        [InlineKeyboardButton(text="📐 Тригонометрія", callback_data="trigonometry"),
+         InlineKeyboardButton(text="📚 Логарифми", callback_data="logarithm")]
+    ])
+    return keyboard
+
+# 📌 Автоматична обробка записів користувача
 def fix_equation(equation_str):
-    """Автоматично виправляє введення користувача"""
     equation_str = equation_str.replace("^", "**")  # 2^x → 2**x
     equation_str = equation_str.replace("√(", "sqrt(")  # √(x) → sqrt(x)
-    equation_str = re.sub(r'log_(\d+)\((.*?)\)', r'log(\2, \1)', equation_str)  # log_2(8) → log(8,2)
+    equation_str = equation_str.replace("Sqrt", "sqrt")  # Sqrt(x) → sqrt(x)
+    equation_str = re.sub(r'log_(\d+)\((.*?)\)', r'log(\2, \1)', equation_str)  # log_2(x) → log(x, 2)
     return equation_str
 
-from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi
-
-x = symbols('x')
-
+# 📌 Функція для розрахунків
 def solve_math_expression(expression_str):
-    """Розпізнає і розв’язує рівняння, нерівності або вирази"""
     try:
-        # Перевіряємо, чи це рівняння (містить "=")
+        expression_str = fix_equation(expression_str)  # Виправляємо введення
+
+        # Перевіряємо, чи це рівняння
         if "=" in expression_str:
             left, right = expression_str.split("=")
             equation = Eq(eval(left.strip(), {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi}),
@@ -38,34 +44,50 @@ def solve_math_expression(expression_str):
             solution = solve(equation, x)
             return f"✏️ **Розв’язок рівняння:**\n\n*x* = `{solution}` ✅"
         
-        # Просто вираз (наприклад, sin(30) + cos(60))
+        # Обчислення виразу (наприклад, sin(30) + cos(60))
         else:
             result = eval(expression_str, {"x": x, "sin": lambda a: sin(a * pi / 180).evalf(),
-                               "cos": lambda a: cos(a * pi / 180).evalf(),
-                               "tan": lambda a: tan(a * pi / 180).evalf(),
-                               "log": log, "sqrt": sqrt, "pi": pi})
+                                           "cos": lambda a: cos(a * pi / 180).evalf(),
+                                           "tan": lambda a: tan(a * pi / 180).evalf(),
+                                           "log": log, "sqrt": sqrt, "pi": pi})
             return f"🔢 **Відповідь:** `{result}` ✅"
+
     except Exception as e:
         return f"❌ **Помилка:** `{e}`"
 
-        
+# 📌 Обробник команди /start
 @dp.message(Command("start"))
-async def send_welcome(message: Message):
-    await message.answer("👋 **Вітаю!** Надішли мені рівняння чи вираз, і я його розв’яжу! \n\n"
-                         "📌 **Як вводити:**\n"
-                         "- `2^x = 8` (степінь)\n"
-                         "- `sqrt(x) = 4` (корінь)\n"
-                         "- `log_2(8) = x` (логарифм)\n"
-                         "- `sin(x) + cos(x) = 1` (тригонометрія)")
+async def send_welcome(message: types.Message):
+    await message.answer(
+        "👋 **Вітаю!** Це математичний бот 2.0! Вибери, що ти хочеш розв’язати:", 
+        reply_markup=main_keyboard()
+    )
 
+# 📌 Обробник кнопок
+@dp.callback_query()
+async def process_callback(callback_query: types.CallbackQuery):
+    data = callback_query.data
+    if data == "equation":
+        await callback_query.message.answer("📏 **Введи рівняння (наприклад, `2x + 3 = 7`)**")
+    elif data == "inequality":
+        await callback_query.message.answer("📊 **Введи нерівність (наприклад, `x^2 > 4`)**")
+    elif data == "trigonometry":
+        await callback_query.message.answer("📐 **Введи тригонометричний вираз (наприклад, `sin(30) + cos(60)`)**")
+    elif data == "logarithm":
+        await callback_query.message.answer("📚 **Введи логарифм (наприклад, `log_2(8)`)**")
+    
+    # ✅ ВАЖЛИВО! Прибираємо кнопку після натискання, щоб бот не дублював відповіді
+    await callback_query.answer()
+
+# 📌 Основний обробник повідомлень
 @dp.message()
-async def solve_math(message: Message):
+async def solve_math(message: types.Message):
     result = solve_math_expression(message.text)
     await message.answer(result)
 
+# 📌 Запуск бота
 async def main():
     await dp.start_polling(bot, skip_updates=True)  # ✅ Додаємо skip_updates=True
 
 if __name__ == "__main__":
     asyncio.run(main())
-
