@@ -4,7 +4,7 @@ from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt
 from sympy.parsing.sympy_parser import transformations, standard_transformations
 from aiogram import Bot, Dispatcher
 from aiogram.types import Message
-from aiogram.filters import Command
+from aiogram.filters.command import Command
 import asyncio
 
 # 🔹 Отримуємо токен з Environment Variables
