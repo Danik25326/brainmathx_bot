@@ -31,23 +31,22 @@ def solve_math_expression(expression_str):
         # Перевіряємо, чи це рівняння (містить "=")
         if "=" in expression_str:
             left, right = expression_str.split("=")
-            equation = Eq(eval(left.strip(), {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt}),
-                          eval(right.strip(), {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt}))
+            equation = Eq(eval(left.strip(), {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi}),
+                          eval(right.strip(), {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi}))
             solution = solve(equation, x)
             return f"✏️ **Розв’язок рівняння:** x = {solution}"
         
-        # Перевіряємо, чи це нерівність
-        elif ">" in expression_str or "<" in expression_str or ">=" in expression_str or "<=" in expression_str:
-            return "🔹 **Розв’язок нерівностей в розробці!**"
-
-        # Якщо це просто вираз (наприклад, `sin(30) + cos(60)`)
+        # Якщо це просто вираз (наприклад, sin(30) + cos(60))
         else:
-            result = eval(expression_str, {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt})
+            result = eval(expression_str, {"x": x, "sin": lambda a: sin(a * pi / 180).evalf(),
+                                           "cos": lambda a: cos(a * pi / 180).evalf(),
+                                           "tan": lambda a: tan(a * pi / 180).evalf(),
+                                           "log": log, "sqrt": sqrt, "pi": pi})
             return f"🔢 **Відповідь:** {result}"
 
     except Exception as e:
         return f"❌ **Помилка:** {e}"
-
+        
 @dp.message(Command("start"))
 async def send_welcome(message: Message):
     await message.answer("👋 **Вітаю!** Надішли мені рівняння чи вираз, і я його розв’яжу! \n\n"
