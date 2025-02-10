@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
 
 # 🔹 Отримуємо токен з Environment Variables
-TOKEN = os.getenv("7543249963:AAFll5BEZWRbSv0xDUyhqM0X4GKuIFVJ_K4")
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
