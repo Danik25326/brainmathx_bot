@@ -84,10 +84,15 @@ async def solve_math(message: types.Message):
 
 # 📌 Автоматична обробка записів користувача
 def fix_equation(equation_str):
+    """Автоматично виправляє введення користувача"""
     equation_str = equation_str.replace("^", "**")  # 2^x → 2**x
     equation_str = equation_str.replace("√(", "sqrt(")  # √(x) → sqrt(x)
     equation_str = equation_str.replace("Sqrt", "sqrt")  # Sqrt(x) → sqrt(x)
     equation_str = re.sub(r'log_(\d+)\((.*?)\)', r'log(\2, \1)', equation_str)  # log_2(x) → log(x, 2)
+
+    # ✅ Додаємо пробіли перед змінними (щоб не було "2x", а було "2*x")
+    equation_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', equation_str)
+
     return equation_str
 
 # 📌 Функція для розрахунків
@@ -109,6 +114,21 @@ def solve_math_expression(expression_str):
                                        "tan": lambda a: tan(a * pi / 180).evalf(),
                                        "log": log, "sqrt": sqrt, "pi": pi})
         return f"🔢 **Відповідь:** `{result}` ✅"
+
+@dp.callback_query()
+async def process_callback(callback_query: types.CallbackQuery):
+    data = callback_query.data
+    if data == "equation":
+        await callback_query.message.answer("📏 **Введи рівняння (наприклад, `2x + 3 = 7`)**")
+    elif data == "inequality":
+        await callback_query.message.answer("📊 **Введи нерівність (наприклад, `x^2 > 4`)**")
+    elif data == "trigonometry":
+        await callback_query.message.answer("📐 **Введи тригонометричний вираз (наприклад, `sin(30) + cos(60)`)**")
+    elif data == "logarithm":
+        await callback_query.message.answer("📚 **Введи логарифм (наприклад, `log_2(8)`)**")
+
+    # ✅ Обов'язково підтверджуємо callback, щоб кнопки працювали!
+    await callback_query.answer()
 
 # 📌 Запуск бота
 async def main():
