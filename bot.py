@@ -60,7 +60,7 @@ async def logarithm_info(message: types.Message):
 async def donate_info(message: types.Message):
     await message.answer("💰 **Хочеш підтримати проект?**\n"
                          "🔹 Monobank: `https://send.monobank.ua/jar/ТВОЄ_ПОСИЛАННЯ`\n"
-                         "🔹 PayPal: `ТВОЄ_ПОСИЛАННЯ`\n"
+                         "🔹 PayPal: `https://www.paypal.com/donate/?hosted_button_id=UK58MWKCMVVJA`\n"
                          "Дякую за підтримку! 🙌")
 
 # 📌 Функція для створення кнопок
