@@ -86,6 +86,7 @@ def fix_equation(equation_str):
     return equation_str
 
 # 📌 Основна функція розрахунків
+# 📌 Основна функція розрахунків
 @dp.message()
 async def solve_math(message: types.Message):
     user_input = message.text.strip()
@@ -104,6 +105,13 @@ async def solve_math(message: types.Message):
                           eval(right.strip(), {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi}))
             solution = solve(equation, x)
             await message.answer(f"✏️ **Розв’язок:** `x = {solution}` ✅")
+
+        # ✅ Якщо це нерівність (наприклад, `5 > 3`)
+        elif ">" in expression or "<" in expression or ">=" in expression or "<=" in expression:
+            result = eval(expression, {"x": x})
+            symbol = "✅" if result else "❌"
+            text_result = "True (вірно)" if result else "False (невірно)"
+            await message.answer(f"🔢 **Відповідь:** `{text_result}` {symbol}")
 
         # ✅ Якщо це просто вираз → рахуємо через `eval()`
         else:
