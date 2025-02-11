@@ -1,6 +1,7 @@
 import os
 import asyncio
 import re
+from aiohttp import web  # Фейковий веб-сервер
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, BotCommand, MenuButtonCommands
@@ -12,6 +13,20 @@ bot = Bot(token=TOKEN, parse_mode="Markdown")
 dp = Dispatcher()
 
 x = symbols('x')  # Основна змінна
+
+# 📌 Фейковий веб-сервер для Render
+async def handle(request):
+    return web.Response(text="Bot is running!")
+
+async def start_server():
+    app = web.Application()
+    app.router.add_get("/", handle)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", int(os.getenv("PORT", 8080)))
+    await site.start()
+
+    print("🌍 Фейковий сервер запущений, бот активний!")
 
 # 📌 Налаштування команд меню
 async def set_menu():
@@ -101,10 +116,13 @@ async def solve_math(message: types.Message):
     except Exception as e:
         await message.answer(f"❌ **Помилка:** {e}")
 
-# 📌 Запуск бота
+# 📌 Запуск бота + фейкового сервера
 async def main():
-    await set_menu()  
-    await dp.start_polling(bot, skip_updates=True)
+    await set_menu()
+    await asyncio.gather(
+        start_server(),  # Запускає фейковий сервер
+        dp.start_polling(bot, skip_updates=True)  # Запускає бота
+    )
 
 if __name__ == "__main__":
     asyncio.run(main())
