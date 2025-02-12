@@ -8,7 +8,10 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from sympy import symbols, Eq, solve, diff, integrate, sin, cos, tan, log, sqrt, pi
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-bot = Bot(token=TOKEN, parse_mode="Markdown")
+from aiogram.client.default import DefaultBotProperties
+
+bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode="Markdown"))
+
 dp = Dispatcher(storage=MemoryStorage())
 
 x = symbols('x')
