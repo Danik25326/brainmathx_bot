@@ -5,18 +5,15 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, BotCommand
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.client.default import DefaultBotProperties
 from sympy import symbols, Eq, solve, diff, integrate, sin, cos, tan, log, sqrt, pi
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-from aiogram.client.default import DefaultBotProperties
-
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode="Markdown"))
-
 dp = Dispatcher(storage=MemoryStorage())
 
 x = symbols('x')
 
-# Функція для корекції математичних виразів
 def fix_equation(equation_str):
     equation_str = equation_str.replace("^", "**")
     equation_str = equation_str.replace("√(", "sqrt(")
@@ -28,14 +25,12 @@ def fix_equation(equation_str):
 def format_expression(expr):
     return str(expr).replace("**", "^").replace("*", "")
 
-# Налаштування команд
 async def set_menu():
     await bot.set_my_commands([
         BotCommand(command="start", description="Запустити бота"),
         BotCommand(command="help", description="Як користуватися ботом?")
     ])
 
-# Обробник команди /start
 @dp.message(Command("start"))
 async def send_welcome(message: types.Message):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -48,13 +43,12 @@ async def send_welcome(message: types.Message):
     ])
     await message.answer("👋 **Вітаю!** Це BrainMathX – бот для розв’язання математичних виразів!", reply_markup=keyboard)
 
-# Обробник callback кнопок
 @dp.callback_query()
 async def process_callback(callback_query: types.CallbackQuery):
     responses = {
         "equation": "📏 **Введи рівняння (наприклад, `2x + 3 = 7`)**",
         "inequality": "📊 **Введи нерівність (наприклад, `x^2 > 4`)**",
-        "trigonometry": "📐 **Введи тригонометричний вираз (наприклад, `sin(30) + cos(60)`)**",
+        "trigonometry": "📐 **Введи тригонометричний вираз (наприклад, `sin(pi/4) + cos(pi/3)`)**",
         "logarithm": "📚 **Введи логарифм (наприклад, `log_2(8)`)**",
         "derivative": "📈 **Введи функцію для знаходження похідної (наприклад, `diff(x^2 + 3x)`)**",
         "integral": "🔄 **Введи функцію для знаходження інтегралу (наприклад, `integrate(x^2 + 3x)`)**"
@@ -62,7 +56,6 @@ async def process_callback(callback_query: types.CallbackQuery):
     await callback_query.message.answer(responses.get(callback_query.data, "❌ Невідома команда"))
     await callback_query.answer()
 
-# Обробник математичних виразів
 @dp.message()
 async def solve_math(message: types.Message):
     user_input = message.text.strip()
@@ -91,7 +84,6 @@ async def solve_math(message: types.Message):
     except Exception as e:
         await message.answer(f"❌ **Помилка:** {e}")
 
-# Головна функція запуску
 async def main():
     await set_menu()
     await dp.start_polling(bot, skip_updates=True)
