@@ -1,4 +1,4 @@
-aiogram
+aiogram3.0.0
 aiohttp
 sympy
 nest_asyncio
