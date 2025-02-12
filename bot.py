@@ -24,6 +24,9 @@ def fix_equation(equation_str):
     equation_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', equation_str)
     return equation_str
 
+def format_expression(expr):
+    return str(expr).replace("**", "^").replace("*", "")
+
 async def start_server():
     app = web.Application()
     app.router.add_get("/", lambda request: web.Response(text="Bot is running!"))
@@ -82,14 +85,14 @@ async def solve_math(message: types.Message):
         elif "diff(" in expression:
             expr = eval(expression.replace("diff", ""), {"x": x})
             derivative = diff(expr, x)
-            await message.answer(f"📈 **Похідна:** `{derivative}` ✅")
+            await message.answer(f"📈 **Похідна:** `{format_expression(derivative)}` ✅")
         elif "integrate(" in expression:
             expr = eval(expression.replace("integrate", ""), {"x": x})
             integral = integrate(expr, x)
-            await message.answer(f"🔄 **Інтеграл:** `{integral}` ✅")
+            await message.answer(f"🔄 **Інтеграл:** `{format_expression(integral)}` ✅")
         else:
             result = eval(expression, {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi})
-            await message.answer(f"🔢 **Відповідь:** `{result}` ✅")
+            await message.answer(f"🔢 **Відповідь:** `{format_expression(result)}` ✅")
     except Exception as e:
         await message.answer(f"❌ **Помилка:** {e}")
 
