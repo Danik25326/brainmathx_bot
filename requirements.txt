@@ -1,4 +1,2 @@
 aiogram
-aiohttp
 sympy
-nest_asyncio
