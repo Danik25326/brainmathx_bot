@@ -1,21 +1,19 @@
 import os
 import asyncio
 import re
-from aiohttp import web
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, BotCommand, MenuButtonCommands
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, BotCommand
 from aiogram.fsm.storage.memory import MemoryStorage
-from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi, diff, integrate
-from aiogram.client.default import DefaultBotProperties
+from sympy import symbols, Eq, solve, diff, integrate, sin, cos, tan, log, sqrt, pi
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-
-bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode="Markdown"))
+bot = Bot(token=TOKEN, parse_mode="Markdown")
 dp = Dispatcher(storage=MemoryStorage())
 
 x = symbols('x')
 
+# Функція для корекції математичних виразів
 def fix_equation(equation_str):
     equation_str = equation_str.replace("^", "**")
     equation_str = equation_str.replace("√(", "sqrt(")
@@ -27,21 +25,14 @@ def fix_equation(equation_str):
 def format_expression(expr):
     return str(expr).replace("**", "^").replace("*", "")
 
-async def start_server():
-    app = web.Application()
-    app.router.add_get("/", lambda request: web.Response(text="Bot is running!"))
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", int(os.getenv("PORT", 8080)))
-    await site.start()
-
+# Налаштування команд
 async def set_menu():
     await bot.set_my_commands([
         BotCommand(command="start", description="Запустити бота"),
         BotCommand(command="help", description="Як користуватися ботом?")
     ])
-    await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
 
+# Обробник команди /start
 @dp.message(Command("start"))
 async def send_welcome(message: types.Message):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -54,9 +45,9 @@ async def send_welcome(message: types.Message):
     ])
     await message.answer("👋 **Вітаю!** Це BrainMathX – бот для розв’язання математичних виразів!", reply_markup=keyboard)
 
+# Обробник callback кнопок
 @dp.callback_query()
 async def process_callback(callback_query: types.CallbackQuery):
-    data = callback_query.data
     responses = {
         "equation": "📏 **Введи рівняння (наприклад, `2x + 3 = 7`)**",
         "inequality": "📊 **Введи нерівність (наприклад, `x^2 > 4`)**",
@@ -65,9 +56,10 @@ async def process_callback(callback_query: types.CallbackQuery):
         "derivative": "📈 **Введи функцію для знаходження похідної (наприклад, `diff(x^2 + 3x)`)**",
         "integral": "🔄 **Введи функцію для знаходження інтегралу (наприклад, `integrate(x^2 + 3x)`)**"
     }
-    await callback_query.message.answer(responses.get(data, "❌ Невідома команда"))
+    await callback_query.message.answer(responses.get(callback_query.data, "❌ Невідома команда"))
     await callback_query.answer()
 
+# Обробник математичних виразів
 @dp.message()
 async def solve_math(message: types.Message):
     user_input = message.text.strip()
@@ -82,12 +74,12 @@ async def solve_math(message: types.Message):
             equation = Eq(eval(left, {"x": x}), eval(right, {"x": x}))
             solution = solve(equation, x)
             await message.answer(f"✏️ **Розв’язок:** `x = {solution}` ✅")
-        elif "diff(" in expression:
-            expr = eval(expression.replace("diff", ""), {"x": x})
+        elif user_input.startswith("diff("):
+            expr = eval(user_input[5:-1], {"x": x})
             derivative = diff(expr, x)
             await message.answer(f"📈 **Похідна:** `{format_expression(derivative)}` ✅")
-        elif "integrate(" in expression:
-            expr = eval(expression.replace("integrate", ""), {"x": x})
+        elif user_input.startswith("integrate("):
+            expr = eval(user_input[9:-1], {"x": x})
             integral = integrate(expr, x)
             await message.answer(f"🔄 **Інтеграл:** `{format_expression(integral)}` ✅")
         else:
@@ -96,9 +88,10 @@ async def solve_math(message: types.Message):
     except Exception as e:
         await message.answer(f"❌ **Помилка:** {e}")
 
+# Головна функція запуску
 async def main():
     await set_menu()
-    await asyncio.gather(start_server(), dp.start_polling(bot, skip_updates=True))
+    await dp.start_polling(bot, skip_updates=True)
 
 if __name__ == "__main__":
     asyncio.run(main())
