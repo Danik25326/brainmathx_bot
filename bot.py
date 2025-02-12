@@ -80,13 +80,12 @@ async def solve_math(message: types.Message):
     try:
         expression = fix_equation(user_input)
         parsed_expr = sympify(expression, locals={"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi})
-
-       if message.text.startswith("diff "):      
-           result = diff(parsed_expr, x)
-           await message.answer(f"📌 <b>Похідна</b> <code>{user_input}</code>: <code>{result}</code>")
-       elif message.text.startswith("integrate "):
-           result = integrate(parsed_expr, x)
-           await message.answer(f"📌 <b>Інтеграл</b> <code>{user_input}</code>: <code>{result} + C</code>")
+        if message.text.startswith("diff "):
+            result = diff(parsed_expr, x)
+            await message.answer(f"📌 <b>Похідна</b> <code>{user_input}</code>: <code>{result}</code>")
+        elif message.text.startswith("integrate "):
+            result = integrate(parsed_expr, x)
+            await message.answer(f"📌 <b>Інтеграл</b> <code>{user_input}</code>: <code>{result} + C</code>")
         else:
             result = eval(expression, {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi})
             await message.answer(f"🔢 <b>Відповідь:</b> <code>{result}</code> ✅")
