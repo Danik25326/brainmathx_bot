@@ -1,4 +1,4 @@
-aiogram==3.0.0
-python-dotenv
-sympy
+aiogram
 aiohttp
+sympy
+nest_asyncio
