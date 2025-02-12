@@ -5,7 +5,7 @@ from aiohttp import web  # Фейковий веб-сервер
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, BotCommand, MenuButtonCommands
-from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi
+from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi, diff, integrate
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")  # Отримуємо токен
 
@@ -25,7 +25,6 @@ async def start_server():
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", int(os.getenv("PORT", 8080)))
     await site.start()
-
     print("🌍 Фейковий сервер запущений, бот активний!")
 
 # 📌 Налаштування команд меню
@@ -36,31 +35,25 @@ async def set_menu():
     ])
     await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
 
-# 📌 Обробник команди /start
+# 📌 Головне меню
 @dp.message(Command("start"))
 async def send_welcome(message: types.Message):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📏 Рівняння", callback_data="equation"),
          InlineKeyboardButton(text="📊 Нерівності", callback_data="inequality")],
         [InlineKeyboardButton(text="📐 Тригонометрія", callback_data="trigonometry"),
-         InlineKeyboardButton(text="📚 Логарифми", callback_data="logarithm")]
+         InlineKeyboardButton(text="📚 Логарифми", callback_data="logarithm")],
+        [InlineKeyboardButton(text="📈 Похідна", callback_data="derivative"),
+         InlineKeyboardButton(text="📉 Інтеграл", callback_data="integral")]
     ])
     await message.answer("👋 **Вітаю!** Це BrainMathX – бот для розв’язання математичних виразів!\n\n"
                          "📌 **Що я вмію?**\n"
                          "- Розв’язувати рівняння (наприклад, `2x + 3 = 7`)\n"
                          "- Працювати з логарифмами (`log_2(8) = x`)\n"
                          "- Виконувати тригонометричні обчислення (`sin(30) + cos(60)`) \n"
-                         "- Обчислювати корені (`sqrt(25) = 5`)\n\n"
+                         "- Обчислювати корені (`sqrt(25) = 5`)\n"
+                         "- Знаходити похідні та інтеграли!\n\n"
                          "🔹 Вибери, що хочеш розв’язати:", reply_markup=keyboard)
-
-# 📌 Обробник команди /help
-@dp.message(Command("help"))
-async def send_help(message: types.Message):
-    await message.answer("📌 **Як користуватися ботом?**\n"
-                         "- Введи рівняння, наприклад `2x + 3 = 7`\n"
-                         "- Використовуй `sqrt(x)` для коренів\n"
-                         "- Використовуй `log_2(x)` для логарифмів\n"
-                         "- Використовуй `sin(x)`, `cos(x)`, `tan(x)` для тригонометрії")
 
 # 📌 Обробка кнопок
 @dp.callback_query()
@@ -74,9 +67,13 @@ async def process_callback(callback_query: types.CallbackQuery):
         await callback_query.message.answer("📐 **Введи тригонометричний вираз (наприклад, `sin(30) + cos(60)`)**")
     elif data == "logarithm":
         await callback_query.message.answer("📚 **Введи логарифм (наприклад, `log_2(8)`)**")
+    elif data == "derivative":
+        await callback_query.message.answer("📈 **Введи функцію для похідної (наприклад, `x**3 + 2x`)**")
+    elif data == "integral":
+        await callback_query.message.answer("📉 **Введи функцію для інтеграла (наприклад, `x**3 + 2x`)**")
     await callback_query.answer()
 
-# 📌 Функція для виправлення синтаксису виразів
+# 📌 Виправлення синтаксису
 def fix_equation(equation_str):
     equation_str = equation_str.replace("^", "**")  
     equation_str = equation_str.replace("√(", "sqrt(")  
@@ -85,51 +82,56 @@ def fix_equation(equation_str):
     equation_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', equation_str)  
     return equation_str
 
-# 📌 Основна функція розрахунків
-# 📌 Основна функція розрахунків
+# 📌 Обробка виразів
 @dp.message()
 async def solve_math(message: types.Message):
     user_input = message.text.strip()
 
-    # ❌ Якщо це команда (наприклад, `/start` або `/help`), не обробляємо її
     if user_input.startswith("/"):
         return
 
     try:
         expression = fix_equation(user_input)
 
-        # ✅ Якщо є "=", це рівняння → використовуємо `solve()`
         if "=" in expression:
             left, right = expression.split("=")
-            equation = Eq(eval(left.strip(), {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi}),
-                          eval(right.strip(), {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi}))
+            equation = Eq(eval(left.strip(), {"x": x}), eval(right.strip(), {"x": x}))
             solution = solve(equation, x)
             await message.answer(f"✏️ **Розв’язок:** `x = {solution}` ✅")
 
-        # ✅ Якщо це нерівність (наприклад, `5 > 3`)
-        elif ">" in expression or "<" in expression or ">=" in expression or "<=" in expression:
+        elif ">" in expression or "<" in expression:
             result = eval(expression, {"x": x})
             symbol = "✅" if result else "❌"
             text_result = "True (вірно)" if result else "False (невірно)"
             await message.answer(f"🔢 **Відповідь:** `{text_result}` {symbol}")
 
-        # ✅ Якщо це просто вираз → рахуємо через `eval()`
+        elif "diff" in expression or "**" in expression:
+            result = diff(eval(expression, {"x": x}), x)
+            explanation = f"📌 Похідна `{user_input}`:\n\n"
+            explanation += "1️⃣ Використовуємо правило степеня: d/dx [xⁿ] = n * x^(n-1)\n"
+            explanation += f"🎯 Відповідь: `{result}`"
+            await message.answer(explanation)
+
+        elif "integrate" in expression or "**" in expression:
+            result = integrate(eval(expression, {"x": x}), x)
+            explanation = f"📌 Інтеграл `{user_input}`:\n\n"
+            explanation += "1️⃣ Використовуємо основні правила інтеграції.\n"
+            explanation += f"🎯 Відповідь: `{result} + C`"
+            await message.answer(explanation)
+
         else:
-            result = eval(expression, {"x": x, "sin": lambda a: sin(a * pi / 180).evalf(),
-                                       "cos": lambda a: cos(a * pi / 180).evalf(),
-                                       "tan": lambda a: tan(a * pi / 180).evalf(),
-                                       "log": log, "sqrt": sqrt, "pi": pi})
+            result = eval(expression, {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi})
             await message.answer(f"🔢 **Відповідь:** `{result}` ✅")
 
     except Exception as e:
         await message.answer(f"❌ **Помилка:** {e}")
 
-# 📌 Запуск бота + фейкового сервера
+# 📌 Запуск бота + сервера
 async def main():
     await set_menu()
     await asyncio.gather(
-        start_server(),  # Запускає фейковий сервер
-        dp.start_polling(bot, skip_updates=True)  # Запускає бота
+        start_server(),
+        dp.start_polling(bot, skip_updates=True)
     )
 
 if __name__ == "__main__":
