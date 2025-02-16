@@ -4,6 +4,7 @@ import re
 from aiohttp import web
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
+from aiogram.types import Update
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, BotCommand, MenuButtonCommands
 from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi, diff, integrate, sympify
 
@@ -72,8 +73,9 @@ async def on_shutdown():
     await bot.delete_webhook()
 
 async def handle_update(request):
-    update = await request.json()
-    await dp.feed_update(bot, types.Update(**update))
+    update_data = await request.json()
+    update = Update.model_validate(update_data)
+    await dp._process_update(bot, update)
     return web.Response()
 
 app = web.Application()
