@@ -97,6 +97,7 @@ async def main():
     await set_menu()
     server_task = asyncio.create_task(start_server())
     bot_task = asyncio.create_task(dp.start_polling(bot, skip_updates=True))
+    ping_task = asyncio.create_task(ping_self())
     await asyncio.gather(server_task, bot_task)
     
 async def ping_self():
