@@ -98,6 +98,16 @@ async def main():
     server_task = asyncio.create_task(start_server())
     bot_task = asyncio.create_task(dp.start_polling(bot, skip_updates=True))
     await asyncio.gather(server_task, bot_task)
+    
+async def ping_self():
+    while True:
+        try:
+            async with bot.session.get("https://ТВОЙ-ДОМЕН.onrender.com/") as response:
+                print("Пінгую сервер:", response.status)
+        except Exception as e:
+            print("Помилка пінгу:", e)
+        await asyncio.sleep(300)  # Кожні 5 хвилин
+
 
 if __name__ == "__main__":
     asyncio.run(main())
