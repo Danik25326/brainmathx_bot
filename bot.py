@@ -28,21 +28,21 @@ async def solve_expression(expression):
     try:
         expression = fix_equation(expression)
         parsed_expr = sympify(expression, locals={"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi})
-        
-        # Якщо вираз містить похідну
-        if "diff(" in expression or "d/dx" in expression:
-            return str(diff(parsed_expr, x).simplify())
 
+        # Визначаємо, що обчислюємо: похідну, інтеграл чи звичайний вираз
+        if expression.startswith("d/dx") or "diff(" in expression:
+            derivative = diff(parsed_expr, x).simplify()
+            return str(derivative)
 
-        # Якщо вираз містить інтеграл
-        if "integrate(" in expression or "∫" in expression:
-            return str(integrate(parsed_expr, x).simplify())
+        if expression.startswith("∫") or "integrate(" in expression:
+            integral = integrate(parsed_expr, x).simplify()
+            return str(integral)
 
-        # Обчислення виразу (спрощення та числове значення)
-        result = parsed_expr.simplify().evalf()
+        # Обчислення тригонометричних виразів та інших функцій
+        result = parsed_expr.evalf()
 
-        # Округлення до 6 знаків після коми
-        if result.is_Number:
+        # Округлення результату
+        if result.is_real:
             result = round(result, 6)
 
         return str(result)
@@ -84,8 +84,8 @@ async def process_callback(callback_query: types.CallbackQuery):
         "inequality": "📊 Введи нерівність (наприклад, x^2 - 4 > 0)",
         "trigonometry": "📐 Введи тригонометричний вираз (наприклад, sin(30) + cos(60))",
         "logarithm": "📚 Введи логарифмічний вираз (наприклад, log_2(8))",
-        "derivative": "📈 Введи функцію для похідної (наприклад, x^3 + 2x)",
-        "integral": "📉 Введи функцію для інтегралу (наприклад, x^3 + 2x)"
+        "derivative": "📈 Введи функцію для похідної (наприклад, d/dx x^3 + 2x)",
+        "integral": "📉 Введи функцію для інтегралу (наприклад, ∫ x^3 + 2x dx)"
     }
     await callback_query.message.answer(prompts.get(data, "Невідома команда"))
     await callback_query.answer()
