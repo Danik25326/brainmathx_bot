@@ -31,11 +31,12 @@ async def solve_expression(expression):
         
         # Якщо вираз містить похідну
         if "diff(" in expression or "d/dx" in expression:
-            return str(diff(parsed_expr, x))
+            return str(diff(parsed_expr, x).simplify())
+
 
         # Якщо вираз містить інтеграл
         if "integrate(" in expression or "∫" in expression:
-            return str(integrate(parsed_expr, x))
+            return str(integrate(parsed_expr, x).simplify())
 
         # Обчислення виразу (спрощення та числове значення)
         result = parsed_expr.simplify().evalf()
