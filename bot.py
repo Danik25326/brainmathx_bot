@@ -1,7 +1,6 @@
 import os
 import asyncio
 import re
-import nest_asyncio
 from aiohttp import web  # Фейковий веб-сервер
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
