@@ -28,10 +28,22 @@ async def solve_expression(expression):
     try:
         expression = fix_equation(expression)
         parsed_expr = sympify(expression, locals={"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi})
-        result = eval(str(parsed_expr), {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi})
+        
+        # Якщо вираз містить похідну
+        if "diff(" in expression or "d/dx" in expression:
+            return str(diff(parsed_expr, x))
 
-        if isinstance(result, float):
-            result = round(result, 6)  # Округлення для зручності
+        # Якщо вираз містить інтеграл
+        if "integrate(" in expression or "∫" in expression:
+            return str(integrate(parsed_expr, x))
+
+        # Обчислення виразу (спрощення та числове значення)
+        result = parsed_expr.simplify().evalf()
+
+        # Округлення до 6 знаків після коми
+        if result.is_Number:
+            result = round(result, 6)
+
         return str(result)
     except Exception as e:
         return f"Помилка: {e}"
