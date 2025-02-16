@@ -1,12 +1,15 @@
 import os
 import asyncio
 import re
+from aiohttp import web
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from sympy import symbols, solve, sin, cos, tan, log, sqrt, pi, diff, integrate, sympify
+from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi, diff, integrate, sympify
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+PORT = int(os.getenv("PORT", 8080))
 
 bot = Bot(token=TOKEN, parse_mode="HTML")
 dp = Dispatcher()
@@ -25,9 +28,28 @@ async def solve_expression(expression):
     try:
         expression = fix_equation(expression)
         parsed_expr = sympify(expression, locals={"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi})
-        return eval(str(parsed_expr), {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi})
+        result = eval(str(parsed_expr), {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi})
+
+        if isinstance(result, float):
+            result = round(result, 6)  # Округлення для зручності
+        return str(result)
     except Exception as e:
         return f"Помилка: {e}"
+
+async def solve_equation(equation):
+    try:
+        equation = fix_equation(equation)
+        left, right = equation.split("=")
+        solution = solve(Eq(sympify(left), sympify(right)), x)
+        return f"Розв’язок: {solution}"
+    except Exception as e:
+        return f"Помилка: {e}"
+
+async def send_math_result(message: types.Message, response: str):
+    try:
+        await message.answer(f"📌 Відповідь: <code>{response}</code>")
+    except:
+        await message.answer(f"📌 Відповідь: {response}")
 
 @dp.message(Command("start"))
 async def send_welcome(message: types.Message):
@@ -59,11 +81,36 @@ async def process_callback(callback_query: types.CallbackQuery):
 async def handle_math(message: types.Message):
     if message.text.startswith("/"):
         return
-    response = await solve_expression(message.text.strip())
-    await message.answer(f"📌 Відповідь: <code>{response}</code>")
+
+    text = message.text.strip()
+    if "=" in text:
+        response = await solve_equation(text)
+    else:
+        response = await solve_expression(text)
+
+    await send_math_result(message, response)
+
+async def on_startup():
+    await bot.set_webhook(WEBHOOK_URL)
+
+async def on_shutdown():
+    await bot.delete_webhook()
+
+async def handle_update(request):
+    update = await request.json()
+    await dp.feed_update(bot, types.Update(**update))
+    return web.Response()
+
+app = web.Application()
+app.router.add_post("/webhook", handle_update)
 
 async def main():
-    await dp.start_polling(bot)
+    await asyncio.gather(
+        dp.start_polling(bot),
+        web._run_app(app, host="0.0.0.0", port=PORT)
+    )
 
 if __name__ == "__main__":
+    dp.startup.register(on_startup)
+    dp.shutdown.register(on_shutdown)
     asyncio.run(main())
