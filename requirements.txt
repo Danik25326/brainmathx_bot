@@ -2,3 +2,4 @@ aiogram==3.0.0
 python-dotenv
 sympy
 aiohttp
+nest_asyncio
