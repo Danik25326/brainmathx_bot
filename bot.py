@@ -10,7 +10,7 @@ from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi, diff, integr
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-PORT = int(os.getenv("PORT", 8080))
+PORT = int(os.getenv("PORT", 10000))
 
 bot = Bot(token=TOKEN, parse_mode="HTML")
 dp = Dispatcher()
