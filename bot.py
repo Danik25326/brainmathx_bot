@@ -9,7 +9,7 @@ from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi, diff, integr
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-PORT = int(os.getenv("PORT", 8080))
+FAKE_PORT = 443  # Фейковий порт для стабільності
 
 bot = Bot(token=TOKEN, parse_mode="HTML")
 dp = Dispatcher()
@@ -29,40 +29,34 @@ async def solve_expression(expression):
         expression = fix_equation(expression)
         parsed_expr = sympify(expression, locals={"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi})
 
-        # Визначаємо, що обчислюємо: похідну, інтеграл чи звичайний вираз
-        if expression.startswith("d/dx") or "diff(" in expression:
+        if expression.startswith("d/dx ") or "diff(" in expression:
             derivative = diff(parsed_expr, x).simplify()
-            return str(derivative)
+            return f"📌 Похідна: {derivative}"
 
-        if expression.startswith("∫") or "integrate(" in expression:
+        if expression.startswith("∫ ") or "integrate(" in expression:
             integral = integrate(parsed_expr, x).simplify()
-            return str(integral)
+            return f"📌 Інтеграл: {integral} + C"
 
-        # Обчислення тригонометричних виразів та інших функцій
         result = parsed_expr.evalf()
 
-        # Округлення результату
         if result.is_real:
             result = round(result, 6)
 
-        return str(result)
+        return f"📌 Відповідь: {result}"
     except Exception as e:
-        return f"Помилка: {e}"
+        return f"❌ Помилка: {e}"
 
 async def solve_equation(equation):
     try:
         equation = fix_equation(equation)
         left, right = equation.split("=")
         solution = solve(Eq(sympify(left), sympify(right)), x)
-        return f"Розв’язок: {solution}"
+        return f"📌 Розв’язок: {solution}"
     except Exception as e:
-        return f"Помилка: {e}"
+        return f"❌ Помилка: {e}"
 
 async def send_math_result(message: types.Message, response: str):
-    try:
-        await message.answer(f"📌 Відповідь: <code>{response}</code>")
-    except:
-        await message.answer(f"📌 Відповідь: {response}")
+    await message.answer(response)
 
 @dp.message(Command("start"))
 async def send_welcome(message: types.Message):
@@ -120,7 +114,7 @@ app.router.add_post("/webhook", handle_update)
 async def main():
     await asyncio.gather(
         dp.start_polling(bot),
-        web._run_app(app, host="0.0.0.0", port=PORT)
+        web._run_app(app, host="0.0.0.0", port=FAKE_PORT)
     )
 
 if __name__ == "__main__":
