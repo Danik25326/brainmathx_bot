@@ -7,11 +7,13 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi, diff, integrate, sympify
 
+from aiogram.client.default import DefaultBotProperties  # Оновлення для aiogram 3.4.1
+
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 PORT = int(os.getenv("PORT", 8080))
 
-bot = Bot(token=TOKEN, parse_mode="HTML")
+bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 dp = Dispatcher()
 
 x = symbols('x')
@@ -28,7 +30,7 @@ async def solve_expression(expression):
     try:
         expression = fix_equation(expression)
         parsed_expr = sympify(expression, locals={"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi})
-        result = eval(str(parsed_expr), {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi})
+        result = parsed_expr.evalf()  # Використовуємо evalf() для точного обчислення
 
         if isinstance(result, float):
             result = round(result, 6)  # Округлення для зручності
@@ -42,6 +44,24 @@ async def solve_equation(equation):
         left, right = equation.split("=")
         solution = solve(Eq(sympify(left), sympify(right)), x)
         return f"Розв’язок: {solution}"
+    except Exception as e:
+        return f"Помилка: {e}"
+
+async def calculate_derivative(expression):
+    try:
+        expression = fix_equation(expression)
+        parsed_expr = sympify(expression)
+        derivative = diff(parsed_expr, x)
+        return f"Похідна: {derivative}"
+    except Exception as e:
+        return f"Помилка: {e}"
+
+async def calculate_integral(expression):
+    try:
+        expression = fix_equation(expression)
+        parsed_expr = sympify(expression)
+        integral = integrate(parsed_expr, x)
+        return f"Інтеграл: {integral} + C"
     except Exception as e:
         return f"Помилка: {e}"
 
@@ -69,7 +89,7 @@ async def process_callback(callback_query: types.CallbackQuery):
     prompts = {
         "equation": "✏️ Введи рівняння (наприклад, 2x + 3 = 7)",
         "inequality": "📊 Введи нерівність (наприклад, x^2 - 4 > 0)",
-        "trigonometry": "📐 Введи тригонометричний вираз (наприклад, sin(30) + cos(60))",
+        "trigonometry": "📐 Введи тригонометричний вираз (наприклад, sin(pi/6) + cos(pi/3))",
         "logarithm": "📚 Введи логарифмічний вираз (наприклад, log_2(8))",
         "derivative": "📈 Введи функцію для похідної (наприклад, x^3 + 2x)",
         "integral": "📉 Введи функцію для інтегралу (наприклад, x^3 + 2x)"
@@ -83,8 +103,15 @@ async def handle_math(message: types.Message):
         return
 
     text = message.text.strip()
+    
     if "=" in text:
         response = await solve_equation(text)
+    elif "d/dx" in text:
+        expression = text.replace("d/dx", "").strip()
+        response = await calculate_derivative(expression)
+    elif "∫" in text:
+        expression = text.replace("∫", "").strip()
+        response = await calculate_integral(expression)
     else:
         response = await solve_expression(text)
 
@@ -110,7 +137,8 @@ async def main():
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", PORT)
     await site.start()
-    await dp.start_polling(bot)
+    print(f"✅ Webhook запущено на порту {PORT}")
+    await asyncio.Event().wait()  # Запобігає виходу з програми
 
 if __name__ == "__main__":
     dp.startup.register(on_startup)
