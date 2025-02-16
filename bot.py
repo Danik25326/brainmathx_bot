@@ -1,13 +1,16 @@
 import os
 import asyncio
 import re
+import logging
 from aiohttp import web
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi, diff, integrate, sympify
 
-from aiogram.client.default import DefaultBotProperties  # Оновлення для aiogram 3.4.1
+from aiogram.client.default import DefaultBotProperties
+
+logging.basicConfig(level=logging.INFO)
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
@@ -30,10 +33,10 @@ async def solve_expression(expression):
     try:
         expression = fix_equation(expression)
         parsed_expr = sympify(expression, locals={"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi})
-        result = parsed_expr.evalf()  # Використовуємо evalf() для точного обчислення
+        result = parsed_expr.evalf()
 
         if isinstance(result, float):
-            result = round(result, 6)  # Округлення для зручності
+            result = round(result, 6)
         return str(result)
     except Exception as e:
         return f"Помилка: {e}"
@@ -118,11 +121,17 @@ async def handle_math(message: types.Message):
     await send_math_result(message, response)
 
 async def on_startup():
-    await bot.delete_webhook(drop_pending_updates=True)
-    await bot.set_webhook(WEBHOOK_URL)
+    logging.info("🔄 Запуск бота...")
+    try:
+        await bot.delete_webhook(drop_pending_updates=True)
+        await bot.set_webhook(WEBHOOK_URL)
+        logging.info(f"✅ Webhook встановлено на {WEBHOOK_URL}")
+    except Exception as e:
+        logging.error(f"🚨 Webhook помилка: {e}")
 
 async def on_shutdown():
     await bot.delete_webhook()
+    logging.info("❌ Webhook видалено")
 
 async def handle_update(request):
     update = await request.json()
@@ -132,15 +141,22 @@ async def handle_update(request):
 app = web.Application()
 app.router.add_post("/webhook", handle_update)
 
-async def main():
+async def start_bot():
+    logging.info("🚀 Бот працює в режимі webhook + polling")
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", PORT)
     await site.start()
-    print(f"✅ Webhook запущено на порту {PORT}")
-    await asyncio.Event().wait()  # Запобігає виходу з програми
+
+    try:
+        await bot.delete_webhook(drop_pending_updates=True)
+        await bot.set_webhook(WEBHOOK_URL)
+        logging.info(f"✅ Webhook активний: {WEBHOOK_URL}")
+    except Exception as e:
+        logging.warning(f"⚠️ Webhook не працює, переходжу на polling: {e}")
+        await dp.start_polling(bot)
 
 if __name__ == "__main__":
     dp.startup.register(on_startup)
     dp.shutdown.register(on_shutdown)
-    asyncio.run(main())
+    asyncio.run(start_bot())
