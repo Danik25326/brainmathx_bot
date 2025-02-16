@@ -5,14 +5,13 @@ from aiohttp import web
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.client.default import DefaultBotProperties
 from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi, diff, integrate, sympify
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 PORT = int(os.getenv("PORT", 8080))
 
-bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
+bot = Bot(token=TOKEN, parse_mode="HTML")
 dp = Dispatcher()
 
 x = symbols('x')
@@ -29,7 +28,10 @@ async def solve_expression(expression):
     try:
         expression = fix_equation(expression)
         parsed_expr = sympify(expression, locals={"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi})
-        result = parsed_expr.evalf()
+        result = eval(str(parsed_expr), {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi})
+
+        if isinstance(result, float):
+            result = round(result, 6)  # Округлення для зручності
         return str(result)
     except Exception as e:
         return f"Помилка: {e}"
@@ -79,15 +81,17 @@ async def process_callback(callback_query: types.CallbackQuery):
 async def handle_math(message: types.Message):
     if message.text.startswith("/"):
         return
+
     text = message.text.strip()
     if "=" in text:
         response = await solve_equation(text)
     else:
         response = await solve_expression(text)
+
     await send_math_result(message, response)
 
 async def on_startup():
-    await bot.delete_webhook(drop_pending_updates=True)  # Видалення старого вебхука
+    await bot.delete_webhook(drop_pending_updates=True)
     await bot.set_webhook(WEBHOOK_URL)
 
 async def on_shutdown():
@@ -101,11 +105,14 @@ async def handle_update(request):
 app = web.Application()
 app.router.add_post("/webhook", handle_update)
 
-dp.startup.register(on_startup)
-dp.shutdown.register(on_shutdown)
-
 async def main():
-    await web._run_app(app, host="0.0.0.0", port=PORT)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", PORT)
+    await site.start()
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
+    dp.startup.register(on_startup)
+    dp.shutdown.register(on_shutdown)
     asyncio.run(main())
