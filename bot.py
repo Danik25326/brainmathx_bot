@@ -7,7 +7,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, BotCommand, MenuButtonCommands
 from aiogram.fsm.storage.memory import MemoryStorage  # Додаємо storage для Dispatcher
-from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi
+from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi, solve_univariate_inequality
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")  # Отримуємо токен
 
@@ -80,11 +80,11 @@ async def process_callback(callback_query: types.CallbackQuery):
 
 # 📌 Функція для виправлення синтаксису виразів
 def fix_equation(equation_str):
-    equation_str = equation_str.replace("^", "**")  
-    equation_str = equation_str.replace("√(", "sqrt(")  
-    equation_str = equation_str.replace("Sqrt", "sqrt")  
-    equation_str = re.sub(r'log_(\d+)\((.*?)\)', r'log(\2, \1)', equation_str)  
-    equation_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', equation_str)  
+    equation_str = equation_str.replace("^", "**")
+    equation_str = equation_str.replace("√(", "sqrt(")
+    equation_str = equation_str.replace("Sqrt", "sqrt")
+    equation_str = re.sub(r'log_(\d+)\((.*?)\)', r'log(\2, \1)', equation_str)
+    equation_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', equation_str)
     return equation_str
 
 # 📌 Основна функція розрахунків
@@ -92,14 +92,13 @@ def fix_equation(equation_str):
 async def solve_math(message: types.Message):
     user_input = message.text.strip()
 
-    # ❌ Якщо це команда (наприклад, `/start` або `/help`), не обробляємо її
     if user_input.startswith("/"):
         return
 
     try:
         expression = fix_equation(user_input)
 
-        # ✅ Якщо є "=", це рівняння → використовуємо `solve()`
+        # ✅ Рівняння (з "=")
         if "=" in expression:
             left, right = expression.split("=")
             equation = Eq(eval(left.strip(), {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi}),
@@ -107,19 +106,21 @@ async def solve_math(message: types.Message):
             solution = solve(equation, x)
             await message.answer(f"✏️ **Розв’язок:** `x = {solution}` ✅")
 
-        # ✅ Якщо це нерівність (наприклад, `5 > 3`)
-        elif ">" in expression or "<" in expression or ">=" in expression or "<=" in expression:
-            result = eval(expression, {"x": x})
-            symbol = "✅" if result else "❌"
-            text_result = "True (вірно)" if result else "False (невірно)"
-            await message.answer(f"🔢 **Відповідь:** `{text_result}` {symbol}")
+        # ✅ Нерівності (розв’язання через Sympy)
+        elif any(sign in expression for sign in [">", "<", ">=", "<="]):
+            inequality = eval(expression, {"x": x, "sin": sin, "cos": cos, "tan": tan, "log": log, "sqrt": sqrt, "pi": pi})
+            solution = solve_univariate_inequality(inequality, x, relational=False)
+            await message.answer(f"📊 **Розв’язок нерівності:** `{solution}` ✅")
 
-        # ✅ Якщо це просто вираз → рахуємо через `eval()`
+        # ✅ Просто вираз (тригонометрія, логарифми, корені)
         else:
-            result = eval(expression, {"x": x, "sin": lambda a: sin(a * pi / 180).evalf(),
-                                       "cos": lambda a: cos(a * pi / 180).evalf(),
-                                       "tan": lambda a: tan(a * pi / 180).evalf(),
-                                       "log": log, "sqrt": sqrt, "pi": pi})
+            result = eval(expression, {
+                "x": x,
+                "sin": lambda a: sin(a * pi / 180).evalf(),
+                "cos": lambda a: cos(a * pi / 180).evalf(),
+                "tan": lambda a: tan(a * pi / 180).evalf(),
+                "log": log, "sqrt": sqrt, "pi": pi
+            })
             await message.answer(f"🔢 **Відповідь:** `{result}` ✅")
 
     except Exception as e:
@@ -130,12 +131,12 @@ async def main():
     try:
         await set_menu()
         await asyncio.gather(
-            start_server(),  # Запускає фейковий сервер
-            dp.start_polling(bot, skip_updates=True)  # Запускає бота
+            start_server(),
+            dp.start_polling(bot, skip_updates=True)
         )
     except Exception as e:
         print(f"🚨 Помилка в роботі бота: {e}")
 
 if __name__ == "__main__":
-    nest_asyncio.apply()  # Фікс для async на сервері
+    nest_asyncio.apply()
     asyncio.run(main())
