@@ -2,7 +2,7 @@ import os
 import asyncio
 import re
 import logging
-from typing import Any, Dict  # Додаємо Dict для type hints
+from typing import Any, Dict
 import nest_asyncio
 from aiohttp import web
 from aiogram import Bot, Dispatcher, types
@@ -14,7 +14,7 @@ from aiogram.types import (
     MenuButtonCommands
 )
 from aiogram.fsm.storage.memory import MemoryStorage
-from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi, sympify, SympifyError
+from sympy import symbols, Eq, solve, sin, cos, tan, log, sqrt, pi  # Видалили sympify, SympifyError
 
 # Налаштування логування
 logging.basicConfig(level=logging.INFO)
@@ -66,7 +66,7 @@ class MathProcessor:
     def safe_parse(expression: str) -> Any:
         """Безпечне парсингу математичних виразів"""
         try:
-            # 🔴 ВИПРАВЛЕННЯ: Використовуємо eval для сумісності з lambda
+            # Використовуємо eval для сумісності з lambda
             # Спочатку перетворюємо градуси в радіани для тригонометрії
             expression = MathProcessor._convert_degrees_to_radians(expression)
             return eval(expression, {"__builtins__": {}}, SAFE_SYMBOLS)
@@ -148,7 +148,7 @@ async def send_help(message: types.Message):
 async def process_callback(callback_query: types.CallbackQuery):
     data = callback_query.data
 
-    # 🔴 ВИПРАВЛЕННЯ: Перевірка на наявність message
+    # Перевірка на наявність message
     if not callback_query.message:
         return
 
