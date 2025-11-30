@@ -3,3 +3,4 @@ python-dotenv
 sympy
 aiohttp
 nest_asyncio
+redis==4.5.0
